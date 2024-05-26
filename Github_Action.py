@@ -257,8 +257,8 @@ def get_servers(sess_id: str, session: requests.session) -> {}:
     
     # 定义需要检查的两个 tab_content
     tab_contents = [
-        "#kc2_order_customer_orders_tab_content_1 .kc2_order_table.kc2_content_table tr",
-        "#kc2_order_customer_orders_tab_content_2 .kc2_order_table.kc2_content_table tr"
+        "#kc2_order_customer_orders_tab_content_2 .kc2_order_table.kc2_content_table tr",
+        "#kc2_order_customer_orders_tab_content_3 .kc2_order_table.kc2_content_table tr"
     ]
     
     for tab_content in tab_contents:
