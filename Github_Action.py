@@ -327,7 +327,7 @@ def renew(
         "type": 1,
         "ident": f"kc2_customer_contract_details_extend_contract_{order_id}",
     }
-    f = requests.post(url, headers=headers, data=data)
+    f = session.post(url, headers=headers, data=data)
     f.raise_for_status()
     if not json.loads(f.text)["rs"] == "success":
         return False
@@ -349,8 +349,6 @@ def check(sess_id: str, session: requests.session):
     d = get_servers(sess_id, session)
     flag = True
     for key, val in d.items():
-        if key == "457879":
-            continue
         if val:
             flag = False
             log("[AutoEUServerless] ServerID: %s 续期失败!" % key)
