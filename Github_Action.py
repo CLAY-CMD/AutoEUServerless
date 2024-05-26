@@ -245,29 +245,36 @@ def login(username: str, password: str) -> (str, requests.session):
         return sess_id, session
 
 # 获取服务器列表
+
 def get_servers(sess_id: str, session: requests.session) -> {}:
-    # 获取服务器列表# 
+    # 获取服务器列表
     d = {}
     url = "https://support.euserv.com/index.iphp?sess_id=" + sess_id
     headers = {"user-agent": user_agent, "origin": "https://www.euserv.com"}
     f = session.get(url=url, headers=headers)
     f.raise_for_status()
     soup = BeautifulSoup(f.text, "html.parser")
-    for tr in soup.select(
-        "#kc2_order_customer_orders_tab_content_1 .kc2_order_table.kc2_content_table tr"
-    ):
-        server_id = tr.select(".td-z1-sp1-kc")
-        if not len(server_id) == 1:
-            continue
-        flag = (
-            True
-            if tr.select(".td-z1-sp2-kc .kc2_order_action_container")[0]
-            .get_text()
-            .find("Contract extension possible from")
-            == -1
-            else False
-        )
-        d[server_id[0].get_text()] = flag
+    
+    # 定义需要检查的两个 tab_content
+    tab_contents = [
+        "#kc2_order_customer_orders_tab_content_1 .kc2_order_table.kc2_content_table tr",
+        "#kc2_order_customer_orders_tab_content_2 .kc2_order_table.kc2_content_table tr"
+    ]
+    
+    for tab_content in tab_contents:
+        for tr in soup.select(tab_content):
+            server_id = tr.select(".td-z1-sp1-kc")
+            if not len(server_id) == 1:
+                continue
+            flag = (
+                True
+                if tr.select(".td-z1-sp2-kc .kc2_order_action_container")[0]
+                .get_text()
+                .find("Contract extension possible from") == -1
+                else False
+            )
+            d[server_id[0].get_text()] = flag
+    
     return d
 
 # 续期操作
