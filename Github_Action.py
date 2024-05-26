@@ -257,7 +257,6 @@ def get_servers(sess_id: str, session: requests.session) -> {}:
     
     # 定义需要检查的两个 tab_content
     tab_contents = [
-        "#kc2_order_customer_orders_tab_content_1 .kc2_order_table.kc2_content_table tr",
         "#kc2_order_customer_orders_tab_content_2 .kc2_order_table.kc2_content_table tr",
         "#kc2_order_customer_orders_tab_content_3 .kc2_order_table.kc2_content_table tr"
     ]
@@ -266,6 +265,9 @@ def get_servers(sess_id: str, session: requests.session) -> {}:
         for tr in soup.select(tab_content):
             server_id = tr.select(".td-z1-sp1-kc")
             if not len(server_id) == 1:
+                continue
+            if server_id[0].get_text() == "457879":
+                log("[AutoEUServerless] ServerID: 457879 被排除")
                 continue
             flag = (
                 True
