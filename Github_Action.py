@@ -212,9 +212,8 @@ def login(username: str, password: str) -> (str, requests.session):
     f.raise_for_status()
 
     if "Hello" not in f.text and "Confirm or change your customer data here" not in f.text:
-        if "To finish the login process please solve the following captcha." not in f.text:
-            return "-1", session
-        else:
+        if "To finish the login process please solve the following captcha." in f.text:
+            
             log("[Captcha Solver] 正在进行验证码识别...")
             solved_result = captcha_solver(captcha_image_url, session)
             captcha_code = handle_captcha_solved_result(solved_result)
@@ -241,6 +240,8 @@ def login(username: str, password: str) -> (str, requests.session):
             else:
                 log("[Captcha Solver] 验证失败")
                 return "-1", session
+        else:
+            return "-1", session
     else:
         return sess_id, session
 
