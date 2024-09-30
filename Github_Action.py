@@ -120,7 +120,7 @@ def captcha_solver(captcha_image_url: str, session: requests.session) -> dict:
         "userid": TRUECAPTCHA_USERID,
         "apikey": TRUECAPTCHA_APIKEY,
         "case": "mixed",
-        "mode": "auto",
+        "mode": "human",
         "data": str(encoded_string)[2:-1],
     }
     r = requests.post(url=url, json=data)
@@ -212,8 +212,9 @@ def login(username: str, password: str) -> (str, requests.session):
     f.raise_for_status()
 
     if "Hello" not in f.text and "Confirm or change your customer data here" not in f.text:
-        if "To finish the login process please solve the following captcha." in f.text:
-            
+        if "To finish the login process please solve the following captcha." not in f.text:
+            return "-1", session
+        else:
             log("[Captcha Solver] 正在进行验证码识别...")
             solved_result = captcha_solver(captcha_image_url, session)
             captcha_code = handle_captcha_solved_result(solved_result)
@@ -240,35 +241,43 @@ def login(username: str, password: str) -> (str, requests.session):
             else:
                 log("[Captcha Solver] 验证失败")
                 return "-1", session
-        else:
-            return "-1", session
     else:
         return sess_id, session
 
 # 获取服务器列表
+
 def get_servers(sess_id: str, session: requests.session) -> {}:
-    # 获取服务器列表# 
+    # 获取服务器列表
     d = {}
     url = "https://support.euserv.com/index.iphp?sess_id=" + sess_id
     headers = {"user-agent": user_agent, "origin": "https://www.euserv.com"}
     f = session.get(url=url, headers=headers)
     f.raise_for_status()
     soup = BeautifulSoup(f.text, "html.parser")
-    for tr in soup.select(
-        "#kc2_order_customer_orders_tab_content_1 .kc2_order_table.kc2_content_table tr"
-    ):
-        server_id = tr.select(".td-z1-sp1-kc")
-        if not len(server_id) == 1:
-            continue
-        flag = (
-            True
-            if tr.select(".td-z1-sp2-kc .kc2_order_action_container")[0]
-            .get_text()
-            .find("Contract extension possible from")
-            == -1
-            else False
-        )
-        d[server_id[0].get_text()] = flag
+    
+    # 定义需要检查的两个 tab_content
+    tab_contents = [
+        "#kc2_order_customer_orders_tab_content_2 .kc2_order_table.kc2_content_table tr",
+        "#kc2_order_customer_orders_tab_content_3 .kc2_order_table.kc2_content_table tr"
+    ]
+    
+    for tab_content in tab_contents:
+        for tr in soup.select(tab_content):
+            server_id = tr.select(".td-z1-sp1-kc")
+            if not len(server_id) == 1:
+                continue
+            if server_id[0].get_text() == "457879":
+                log("[AutoEUServerless] ServerID: 457879 被排除")
+                continue
+            flag = (
+                True
+                if tr.select(".td-z1-sp2-kc .kc2_order_action_container")[0]
+                .get_text()
+                .find("Contract extension possible from") == -1
+                else False
+            )
+            d[server_id[0].get_text()] = flag
+    
     return d
 
 # 续期操作
