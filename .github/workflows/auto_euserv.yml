@@ -2,7 +2,7 @@ name: Auto EUserv
 
 on:
   schedule:
-    - cron: '0 12 * * SUN'  # 每周日 UTC 时间 12:00 运行
+    - cron: '0 16 * * *'  # 每天 UTC 时间 16:00 运行，对应中国时区晚上 12:00
   workflow_dispatch:
 
 jobs:
@@ -11,10 +11,10 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@main
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@main
       with:
         python-version: '3.x'  # 指定Python3.x
 
