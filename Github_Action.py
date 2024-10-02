@@ -56,10 +56,10 @@ def log(info: str):
         "正在续费": "🔄",
         "检测到": "🔍",
         "ServerID": "🔗",
-        "无需续期": "✅",
-        "德鸡中弹倒地": "⚠️",
-        "德鸡续期成功": "🎉",
-        "ALL Work Done": "🏁",
+        "无需更新": "✅",
+        "续订错误": "⚠️",
+        "已成功续订": "🎉",
+        "所有工作完成": "🏁",
         "登陆失败": "❗",
         "验证通过": "✔️",
         "验证失败": "❌",
@@ -68,7 +68,7 @@ def log(info: str):
         "登录尝试": "🔑",
         "[MailParser]": "📧",
         "[Captcha Solver]": "🧩",
-        "[EUserv]": "🌐",
+        "[AutoEUServerless]": "🌐",
     }
     # 对每个关键字进行检查，并在找到时添加 emoji
     for key, emoji in emoji_map.items():
@@ -78,7 +78,7 @@ def log(info: str):
 
     print(info)
     global desp
-    desp += info + "\n"
+    desp += info + "\n\n"
 
 
 # 登录重试装饰器
@@ -95,7 +95,7 @@ def login_retry(*args, **kwargs):
                 while number < max_retry:
                     number += 1
                     if number > 1:
-                        log("[EUserv] 登录尝试第 {} 次".format(number))
+                        log("[AutoEUServerless] 登录尝试第 {} 次".format(number))
                     sess_id, session = func(username, password)
                     if sess_id != "-1":
                         return sess_id, session
@@ -120,7 +120,7 @@ def captcha_solver(captcha_image_url: str, session: requests.session) -> dict:
         "userid": TRUECAPTCHA_USERID,
         "apikey": TRUECAPTCHA_APIKEY,
         "case": "mixed",
-        "mode": "auto",
+        "mode": "human",
         "data": str(encoded_string)[2:-1],
     }
     r = requests.post(url=url, json=data)
@@ -245,29 +245,39 @@ def login(username: str, password: str) -> (str, requests.session):
         return sess_id, session
 
 # 获取服务器列表
+
 def get_servers(sess_id: str, session: requests.session) -> {}:
-    # 获取服务器列表# 
+    # 获取服务器列表
     d = {}
     url = "https://support.euserv.com/index.iphp?sess_id=" + sess_id
     headers = {"user-agent": user_agent, "origin": "https://www.euserv.com"}
     f = session.get(url=url, headers=headers)
     f.raise_for_status()
     soup = BeautifulSoup(f.text, "html.parser")
-    for tr in soup.select(
-        "#kc2_order_customer_orders_tab_content_1 .kc2_order_table.kc2_content_table tr"
-    ):
-        server_id = tr.select(".td-z1-sp1-kc")
-        if not len(server_id) == 1:
-            continue
-        flag = (
-            True
-            if tr.select(".td-z1-sp2-kc .kc2_order_action_container")[0]
-            .get_text()
-            .find("Contract extension possible from")
-            == -1
-            else False
-        )
-        d[server_id[0].get_text()] = flag
+    
+    # 定义需要检查的两个 tab_content
+    tab_contents = [
+        "#kc2_order_customer_orders_tab_content_2 .kc2_order_table.kc2_content_table tr",
+        "#kc2_order_customer_orders_tab_content_3 .kc2_order_table.kc2_content_table tr"
+    ]
+    
+    for tab_content in tab_contents:
+        for tr in soup.select(tab_content):
+            server_id = tr.select(".td-z1-sp1-kc")
+            if not len(server_id) == 1:
+                continue
+            if server_id[0].get_text() == "457879":
+                log("[AutoEUServerless] ServerID: 457879 被排除")
+                continue
+            flag = (
+                True
+                if tr.select(".td-z1-sp2-kc .kc2_order_action_container")[0]
+                .get_text()
+                .find("Contract extension possible from") == -1
+                else False
+            )
+            d[server_id[0].get_text()] = flag
+    
     return d
 
 # 续期操作
@@ -341,15 +351,26 @@ def check(sess_id: str, session: requests.session):
     for key, val in d.items():
         if val:
             flag = False
-            log("[EUserv] ServerID: %s 德鸡中弹倒地!" % key)
+            log("[AutoEUServerless] ServerID: %s 续期失败!" % key)
 
     if flag:
-        log("[EUserv] ALL Work Done！Enjoy~")
+        log("[AutoEUServerless] 所有工作完成！尽情享受~")
 
 # 发送 Telegram 通知
 def telegram():
     message = (
-        "<b>AutoEUserv续期日志</b>\n\n" + desp
+        "<b>AutoEUServerless 日志</b>\n\n" + desp +
+        "\n<b>版权声明：</b>\n"
+        "本脚本基于 GPL-3.0 许可协议，版权所有。\n\n"
+        
+        "<b>致谢：</b>\n"
+        "特别感谢 <a href='https://github.com/lw9726/eu_ex'>eu_ex</a> 的贡献和启发, 本项目在此基础整理。\n"
+        "开发者：<a href='https://github.com/lw9726/eu_ex'>WizisCool</a>\n"
+        "<a href='https://www.nodeseek.com/space/8902#/general'>个人Nodeseek主页</a>\n"
+        "<a href='https://dooo.ng'>个人小站Dooo.ng</a>\n\n"
+        "<b>支持项目：</b>\n"
+        "⭐️ 给我们一个 GitHub Star! ⭐️\n"
+        "<a href='https://github.com/WizisCool/AutoEUServerless'>访问 GitHub 项目</a>"
     )
 
     # 请不要删除本段版权声明, 开发不易, 感谢! 感谢!
@@ -373,34 +394,34 @@ def telegram():
 def main_handler(event, context):
     # 主函数，处理每个账户的续期# 
     if not USERNAME or not PASSWORD:
-        log("[EUserv] 你没有添加任何账户")
+        log("[AutoEUServerless] 你没有添加任何账户")
         exit(1)
     user_list = USERNAME.strip().split()
     passwd_list = PASSWORD.strip().split()
     mailparser_dl_url_id_list = MAILPARSER_DOWNLOAD_URL_ID.strip().split()
     if len(user_list) != len(passwd_list):
-        log("[EUserv] 用户名和密码数量不匹配!")
+        log("[AutoEUServerless] 用户名和密码数量不匹配!")
         exit(1)
     if len(mailparser_dl_url_id_list) != len(user_list):
-        log("[EUserv] mailparser_dl_url_ids 和用户名的数量不匹配!")
+        log("[AutoEUServerless] mailparser_dl_url_ids 和用户名的数量不匹配!")
         exit(1)
     for i in range(len(user_list)):
-        log("*" * 30)
-        log("[EUserv] 正在续费第 %d 个账号" % (i + 1))
+        print("*" * 30)
+        log("[AutoEUServerless] 正在续费第 %d 个账号" % (i + 1))
         sessid, s = login(user_list[i], passwd_list[i])
         if sessid == "-1":
-            log("[EUserv] 第 %d 个账号登陆失败，请检查登录信息" % (i + 1))
+            log("[AutoEUServerless] 第 %d 个账号登陆失败，请检查登录信息" % (i + 1))
             continue
         SERVERS = get_servers(sessid, s)
-        log("[EUserv] 检测到第 {} 个账号有 {} 台 VPS，正在尝试续期".format(i + 1, len(SERVERS)))
+        log("[AutoEUServerless] 检测到第 {} 个账号有 {} 台 VPS，正在尝试续期".format(i + 1, len(SERVERS)))
         for k, v in SERVERS.items():
             if v:
                 if not renew(sessid, s, passwd_list[i], k, mailparser_dl_url_id_list[i]):
-                    log("[EUserv] ServerID: %s 德鸡中弹倒地!" % k)
+                    log("[AutoEUServerless] ServerID: %s 续订错误!" % k)
                 else:
-                    log("[EUserv] ServerID: %s 德鸡续期成功!" % k)
+                    log("[AutoEUServerless] ServerID: %s 已成功续订!" % k)
             else:
-                log("[EUserv] ServerID: %s 无需续期" % k)
+                log("[AutoEUServerless] ServerID: %s 无需更新" % k)
         time.sleep(15)
         check(sessid, s)
         time.sleep(5)
