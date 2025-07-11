@@ -329,6 +329,7 @@ def renew(
     }
     f = session.post(url, headers=headers, data=data)
     f.raise_for_status()
+    print(f"DEBUG: EUserv PIN verification response: {f.text}")
     if not json.loads(f.text)["rs"] == "success":
         return False
     token = json.loads(f.text)["token"]["value"]
